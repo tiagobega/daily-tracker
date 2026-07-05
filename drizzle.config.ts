@@ -16,4 +16,11 @@ export default defineConfig({
   dbCredentials: {
     url,
   },
+  // Don't let drizzle try to create/drop Supabase's built-in roles
+  // (authenticated, anon, service_role) referenced by the RLS policies.
+  entities: {
+    roles: {
+      provider: 'supabase',
+    },
+  },
 })

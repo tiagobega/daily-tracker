@@ -1,11 +1,12 @@
-import { createServerClient } from "@supabase/ssr";
-import { getCookies, setCookie } from "@tanstack/react-start/server";
+import { createServerClient } from '@supabase/ssr';
+import { getCookies, setCookie } from '@tanstack/react-start/server';
+import type { Database } from './types';
 
 // Server-side Supabase client bound to the current request's cookies.
 // Because it carries the user's JWT, every query it runs respects RLS.
 // Use this inside server functions and route loaders — never the service role.
 export function getSupabaseServerClient() {
-	return createServerClient(
+	return createServerClient<Database>(
 		import.meta.env.VITE_SUPABASE_URL,
 		import.meta.env.VITE_SUPABASE_ANON_KEY,
 		{
