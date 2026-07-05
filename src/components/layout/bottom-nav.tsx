@@ -6,7 +6,7 @@ import { Calendar, CalendarCheck, Settings, Target } from 'lucide-react';
 const ITEMS = [
 	{ label: 'Hoje', icon: CalendarCheck, to: '/today' as const },
 	{ label: 'Calendário', icon: Calendar, to: '/calendar' as const },
-	{ label: 'Objetivos', icon: Target, to: null },
+	{ label: 'Objetivos', icon: Target, to: '/goals' as const },
 	{ label: 'Ajustes', icon: Settings, to: null },
 ];
 
