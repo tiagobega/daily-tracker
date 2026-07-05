@@ -8,16 +8,16 @@ Tornar o app **instalável** na tela inicial do celular, com carregamento rápid
 
 Apenas um stub: `public/manifest.json` é o do template ("TanStack App", ícones genéricos). **Não há** service worker, registro de SW, nem meta tags de iOS. Precisa ser refeito.
 
-## Abordagem recomendada — `vite-plugin-pwa`
+## Abordagem adotada — SW + manifest manuais
 
-Usar `vite-plugin-pwa` (baseado em Workbox) em vez de escrever o service worker à mão:
+Na implementação (Fase 8), optamos por **service worker + manifest manuais** em vez do `vite-plugin-pwa`. Motivo: o TanStack Start não usa um `index.html` estático (a shell vem do `__root.tsx`), então a injeção automática do plugin (link do manifest + registro do SW) não se aplica; um SW manual é mais previsível e testável com o Nitro.
 
-- Gera o service worker com estratégias de cache prontas.
-- Gera/injeta o manifest a partir da config do Vite.
-- Cuida do registro do SW e de prompts de atualização.
-- Integra com o build do Vite 8 já usado no projeto.
+- **[public/manifest.webmanifest](../public/manifest.webmanifest)** — nome, ícones (192/512 + maskable), `display: standalone`, `start_url: /`, cores. Linkado no `head()` do `__root.tsx`.
+- **[public/sw.js](../public/sw.js)** — SW mínimo: runtime cache **só de assets estáticos** (`/_build`, `/assets`, js/css/img). Navegações e respostas autenticadas **não** são cacheadas (evita servir HTML de sessão obsoleto).
+- **Registro:** `components/pwa-register.tsx` registra `/sw.js` **apenas em produção** (evita dores de cache no dev).
+- **Instalação:** `lib/pwa/use-install-prompt.ts` captura `beforeinstallprompt` (Android) e detecta iOS/standalone; o botão fica em **Ajustes**.
 
-> Verificar a compatibilidade da versão do plugin com Vite 8 + o plugin do TanStack Start ao implementar (Fase 8). Se houver atrito com o SSR do Nitro, a alternativa é um SW mínimo manual registrado no client.
+> **Ícones são placeholders** (`logo192.png`/`logo512.png` do template). Substituir por ícones próprios, incluindo um `maskable` de verdade, antes de publicar.
 
 ## Manifest correto (substituir o stub)
 

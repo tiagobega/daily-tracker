@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, useRouter } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, LogOut, Plus } from 'lucide-react';
+import { createFileRoute } from '@tanstack/react-router';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '#/components/ui/button';
 import {
@@ -27,7 +27,6 @@ import {
 	getLocalTimezone,
 	todayISO,
 } from '#/lib/date';
-import { signOutFn } from '#/lib/supabase/auth';
 
 export const Route = createFileRoute('/_app/today')({
 	validateSearch: (search: Record<string, unknown>): { date?: string } => ({
@@ -37,7 +36,6 @@ export const Route = createFileRoute('/_app/today')({
 });
 
 function TodayPage() {
-	const router = useRouter();
 	const { date: dateParam } = Route.useSearch();
 	const [date, setDate] = useState(() => dateParam ?? todayISO());
 	const [title, setTitle] = useState('');
@@ -63,26 +61,10 @@ function TodayPage() {
 		setTitle('');
 	}
 
-	async function handleSignOut() {
-		await signOutFn();
-		await router.invalidate();
-		router.navigate({ to: '/login' });
-	}
-
 	return (
 		<main className="flex flex-1 flex-col gap-4 p-4 pb-24">
 			<header className="flex flex-col gap-3">
-				<div className="flex items-center justify-between">
-					<h1 className="font-bold text-xl">{isToday ? 'Hoje' : 'Tarefas'}</h1>
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={handleSignOut}
-						aria-label="Sair"
-					>
-						<LogOut className="size-4" />
-					</Button>
-				</div>
+				<h1 className="font-bold text-xl">{isToday ? 'Hoje' : 'Tarefas'}</h1>
 				<div className="flex items-center justify-between gap-2">
 					<Button
 						variant="outline"

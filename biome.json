@@ -46,7 +46,7 @@
 	},
 	"overrides": [
 		{
-			"includes": ["**/src/components/ui/**"],
+			"includes": ["**/src/components/ui/**", "**/src/calendar/**"],
 			"linter": { "enabled": false }
 		}
 	]
