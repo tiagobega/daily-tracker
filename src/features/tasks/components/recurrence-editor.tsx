@@ -1,7 +1,24 @@
+import { CalendarIcon } from 'lucide-react';
+import { Button } from '#/components/ui/button';
+import { Calendar } from '#/components/ui/calendar';
+import { Field, FieldDescription, FieldLabel } from '#/components/ui/field';
 import { Input } from '#/components/ui/input';
-import { Label } from '#/components/ui/label';
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from '#/components/ui/popover';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '#/components/ui/select';
+import { Switch } from '#/components/ui/switch';
+import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group';
+import { dateToISODate, formatShortDate, isoToLocalDate } from '#/lib/date';
 import type { RecurrenceRule, Weekday } from '#/lib/recurrence-rule';
-import { cn } from '#/lib/utils';
 import { describeRecurrence } from '../recurrence';
 
 const WEEKDAYS: [Weekday, string][] = [
@@ -14,7 +31,7 @@ const WEEKDAYS: [Weekday, string][] = [
 	['SU', 'Dom'],
 ];
 
-// Editor for the structured recurrence rule (plan-docs/04). Toggling "Repetir"
+// Editor for the structured recurrence rule (plan-docs/04). Toggling the switch
 // sets the rule to null (pontual) or a default daily rule.
 export function RecurrenceEditor({
 	value,
@@ -31,40 +48,42 @@ export function RecurrenceEditor({
 
 	return (
 		<div className="flex flex-col gap-3">
-			<label className="flex items-center justify-between">
-				<span className="font-medium text-sm">Repetir</span>
-				<input
-					type="checkbox"
-					className="size-4"
+			<Field orientation="horizontal">
+				<FieldLabel htmlFor="rec-enabled">Repetir</FieldLabel>
+				<Switch
+					id="rec-enabled"
 					checked={enabled}
-					onChange={(e) => onChange(e.target.checked ? { freq: 'daily' } : null)}
+					onCheckedChange={(checked) => onChange(checked ? { freq: 'daily' } : null)}
 				/>
-			</label>
+			</Field>
 
 			{enabled ? (
 				<div className="flex flex-col gap-3 rounded-md border p-3">
-					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="rec-freq">Frequência</Label>
-						<select
-							id="rec-freq"
+					<Field>
+						<FieldLabel htmlFor="rec-freq">Frequência</FieldLabel>
+						<Select
 							value={rule.freq}
-							onChange={(e) =>
+							onValueChange={(v) =>
 								update({
-									freq: e.target.value as RecurrenceRule['freq'],
+									freq: v as RecurrenceRule['freq'],
 									byweekday: undefined,
 									bymonthday: undefined,
 								})
 							}
-							className="rounded-md border bg-transparent px-3 py-2 text-sm"
 						>
-							<option value="daily">Diária</option>
-							<option value="weekly">Semanal</option>
-							<option value="monthly">Mensal</option>
-						</select>
-					</div>
+							<SelectTrigger id="rec-freq">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="daily">Diária</SelectItem>
+								<SelectItem value="weekly">Semanal</SelectItem>
+								<SelectItem value="monthly">Mensal</SelectItem>
+							</SelectContent>
+						</Select>
+					</Field>
 
-					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="rec-interval">A cada</Label>
+					<Field>
+						<FieldLabel htmlFor="rec-interval">A cada</FieldLabel>
 						<Input
 							id="rec-interval"
 							type="number"
@@ -74,40 +93,34 @@ export function RecurrenceEditor({
 								update({ interval: Math.max(1, Number(e.target.value) || 1) })
 							}
 						/>
-					</div>
+					</Field>
 
 					{rule.freq === 'weekly' ? (
-						<div className="flex flex-col gap-1.5">
-							<Label>Dias da semana</Label>
-							<div className="flex flex-wrap gap-1.5">
-								{WEEKDAYS.map(([wd, label]) => {
-									const active = rule.byweekday?.includes(wd) ?? false;
-									return (
-										<button
-											key={wd}
-											type="button"
-											onClick={() => {
-												const set = new Set(rule.byweekday ?? []);
-												if (active) set.delete(wd);
-												else set.add(wd);
-												update({ byweekday: [...set] });
-											}}
-											className={cn(
-												'rounded-md border px-2.5 py-1.5 text-xs',
-												active && 'bg-foreground text-background',
-											)}
-										>
-											{label}
-										</button>
-									);
-								})}
-							</div>
-						</div>
+						<Field>
+							<FieldLabel>Dias da semana</FieldLabel>
+							<ToggleGroup
+								type="multiple"
+								variant="outline"
+								value={rule.byweekday ?? []}
+								onValueChange={(vals) =>
+									update({
+										byweekday: vals.length ? (vals as Weekday[]) : undefined,
+									})
+								}
+								className="flex-wrap justify-start"
+							>
+								{WEEKDAYS.map(([wd, label]) => (
+									<ToggleGroupItem key={wd} value={wd} aria-label={label}>
+										{label}
+									</ToggleGroupItem>
+								))}
+							</ToggleGroup>
+						</Field>
 					) : null}
 
 					{rule.freq === 'monthly' ? (
-						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="rec-monthday">Dia do mês</Label>
+						<Field>
+							<FieldLabel htmlFor="rec-monthday">Dia do mês</FieldLabel>
 							<Input
 								id="rec-monthday"
 								type="number"
@@ -116,25 +129,36 @@ export function RecurrenceEditor({
 								value={rule.bymonthday?.[0] ?? ''}
 								onChange={(e) => {
 									const n = Number(e.target.value);
-									update({
-										bymonthday: n >= 1 && n <= 31 ? [n] : undefined,
-									});
+									update({ bymonthday: n >= 1 && n <= 31 ? [n] : undefined });
 								}}
 							/>
-						</div>
+						</Field>
 					) : null}
 
-					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="rec-until">Até (opcional)</Label>
-						<Input
-							id="rec-until"
-							type="date"
-							value={rule.until ?? ''}
-							onChange={(e) => update({ until: e.target.value || undefined })}
-						/>
-					</div>
+					<Field>
+						<FieldLabel>Até (opcional)</FieldLabel>
+						<Popover>
+							<PopoverTrigger asChild>
+								<Button
+									type="button"
+									variant="outline"
+									className="justify-start font-normal"
+								>
+									<CalendarIcon className="size-4" />
+									{rule.until ? formatShortDate(rule.until) : 'Sem data final'}
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent className="w-auto p-0" align="start">
+								<Calendar
+									mode="single"
+									selected={rule.until ? isoToLocalDate(rule.until) : undefined}
+									onSelect={(d) => update({ until: d ? dateToISODate(d) : undefined })}
+								/>
+							</PopoverContent>
+						</Popover>
+					</Field>
 
-					<p className="text-muted-foreground text-xs">{describeRecurrence(rule)}</p>
+					<FieldDescription>{describeRecurrence(rule)}</FieldDescription>
 				</div>
 			) : null}
 		</div>

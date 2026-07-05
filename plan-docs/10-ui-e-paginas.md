@@ -122,7 +122,9 @@ Barra fixa inferior, 4 abas com ícone + rótulo, item ativo destacado. Componen
 
 `button` · `input` · `textarea` · `label` · `checkbox` · `switch` · `radio-group` · `select` · `card` · `badge` · `sheet` · `dialog` · `alert-dialog` · `dropdown-menu` · `popover` · `calendar` · `command` · `toggle-group` · `progress` · `skeleton` · `separator` · `scroll-area` · `sonner` (toast) · `avatar` · `tabs`.
 
-> **Formulários:** NÃO usar o componente `form` do shadcn (baseado em react-hook-form). A camada de formulários é **`@tanstack/react-form`** com validação **Zod**, compondo os primitivos shadcn (`input`, `label`, `select`, etc.) manualmente nos campos. Padronizar um `useAppForm`/field wrappers em `components/form/` para reduzir boilerplate.
+> **Componentes por padrão:** montar layouts com **shadcn/ui**, não controles nativos. Conjunto padrão: `select`, `calendar`, `input`, `input-group`, `empty`, `textarea`, `dialog`, `checkbox`, `switch`, `field` (+ `button`, `card`, `sheet`, `dropdown-menu`, `alert-dialog`, `popover`, `sonner`). Regra prática: `<select>`→`Select`, checkbox/toggle→`Switch`/`Checkbox`, wrappers de campo→`Field`/`FieldGroup`/`FieldLabel`, data→`Calendar` em `Popover`, empty state→`Empty`, input+botão inline→`InputGroup`.
+
+> **Formulários:** NÃO usar o componente `form` do shadcn (baseado em react-hook-form). A camada de formulários é **`@tanstack/react-form`** com validação **Zod**, compondo os componentes shadcn (`Field`, `Input`, `Select`, etc.) nos campos. Padronizar field wrappers em `components/form/` se o boilerplate crescer.
 > Instalar componentes sob demanda por fase (`pnpm dlx shadcn@latest add <nome>`), não tudo de uma vez. Compor classes com o helper `cn` ([src/lib/utils.ts](../src/lib/utils.ts)).
 
 ## Mapa telas × fases

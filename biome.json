@@ -43,5 +43,11 @@
 			"indentStyle": "tab",
 			"indentWidth": 1
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["**/src/components/ui/**"],
+			"linter": { "enabled": false }
+		}
+	]
 }

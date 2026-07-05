@@ -19,6 +19,25 @@ export function addDaysISO(dateISO: string, days: number): string {
 	return d.toISOString().slice(0, 10);
 }
 
+// Convert a local Date (from a calendar picker) to a YYYY-MM-DD string.
+export function dateToISODate(d: Date): string {
+	const y = d.getFullYear();
+	const m = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	return `${y}-${m}-${day}`;
+}
+
+// Parse a YYYY-MM-DD string into a local Date (midnight).
+export function isoToLocalDate(iso: string): Date {
+	const [y, m, d] = iso.split('-').map(Number);
+	return new Date(y, m - 1, d);
+}
+
+// Short pt-BR date, e.g. "04/07/2026".
+export function formatShortDate(iso: string): string {
+	return new Intl.DateTimeFormat('pt-BR').format(isoToLocalDate(iso));
+}
+
 // Human label for a day header, e.g. "sexta, 4 de julho".
 export function formatDayLabel(
 	dateISO: string,

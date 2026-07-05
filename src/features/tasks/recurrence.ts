@@ -50,6 +50,7 @@ export type EngineCompletion = {
 export type Occurrence = {
 	taskId: string;
 	occurrenceDate: string;
+	startsOn: string;
 	title: string;
 	description: string | null;
 	timeOfDay: string | null;
@@ -142,6 +143,7 @@ export function expandOccurrences({
 			result.push({
 				taskId: task.id,
 				occurrenceDate: date,
+				startsOn: task.startsOn,
 				title: ov?.title ?? task.title,
 				description: ov?.description ?? task.description,
 				timeOfDay: ov?.timeOfDay ?? task.timeOfDay,

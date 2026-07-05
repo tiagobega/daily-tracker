@@ -10,6 +10,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '#/components/ui/alert-dialog';
+import { Badge } from '#/components/ui/badge';
 import { Button } from '#/components/ui/button';
 import { Checkbox } from '#/components/ui/checkbox';
 import {
@@ -42,7 +43,6 @@ export function TaskItem({
 	const done = task.status === 'done';
 	const time = task.timeOfDay?.slice(0, 5);
 	const priorityLabel = PRIORITY_LABEL[task.priority];
-	const subtitle = [time, priorityLabel].filter(Boolean).join(' · ');
 
 	return (
 		<div className="flex items-center gap-3 rounded-lg border p-3">
@@ -67,8 +67,17 @@ export function TaskItem({
 				>
 					{task.title}
 				</p>
-				{subtitle ? (
-					<p className="text-muted-foreground text-xs">{subtitle}</p>
+				{time || priorityLabel ? (
+					<div className="mt-0.5 flex items-center gap-1.5">
+						{time ? (
+							<span className="text-muted-foreground text-xs">{time}</span>
+						) : null}
+						{priorityLabel ? (
+							<Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'}>
+								{priorityLabel}
+							</Badge>
+						) : null}
+					</div>
 				) : null}
 			</div>
 
@@ -99,6 +108,7 @@ export function TaskItem({
 				initial={{
 					title: task.title,
 					description: task.description,
+					startsOn: task.startsOn,
 					timeOfDay: task.timeOfDay,
 					priority: task.priority as 'low' | 'medium' | 'high',
 					recurrenceRule: task.recurrenceRule,

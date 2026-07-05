@@ -3,7 +3,20 @@ import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight, LogOut, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '#/components/ui/button';
-import { Input } from '#/components/ui/input';
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from '#/components/ui/empty';
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupButton,
+	InputGroupInput,
+} from '#/components/ui/input-group';
+import { Progress } from '#/components/ui/progress';
+import { Skeleton } from '#/components/ui/skeleton';
 import { TaskFormSheet } from '#/features/tasks/components/task-form-sheet';
 import { TaskItem } from '#/features/tasks/components/task-item';
 import { dayTasksQueryOptions } from '#/features/tasks/queries';
@@ -96,42 +109,50 @@ function TodayPage() {
 				) : null}
 			</header>
 
-			<form onSubmit={handleQuickAdd} className="flex gap-2">
-				<Input
-					value={title}
-					onChange={(e) => setTitle(e.target.value)}
-					placeholder="O que precisa fazer?"
-					aria-label="Nova tarefa"
-				/>
-				<Button
-					type="submit"
-					size="icon"
-					disabled={!title.trim() || mutations.createTask.isPending}
-					aria-label="Adicionar"
-				>
-					<Plus className="size-4" />
-				</Button>
+			<form onSubmit={handleQuickAdd}>
+				<InputGroup>
+					<InputGroupInput
+						value={title}
+						onChange={(e) => setTitle(e.target.value)}
+						placeholder="O que precisa fazer?"
+						aria-label="Nova tarefa"
+					/>
+					<InputGroupAddon align="inline-end">
+						<InputGroupButton
+							type="submit"
+							size="icon-sm"
+							variant="default"
+							disabled={!title.trim() || mutations.createTask.isPending}
+							aria-label="Adicionar"
+						>
+							<Plus className="size-4" />
+						</InputGroupButton>
+					</InputGroupAddon>
+				</InputGroup>
 			</form>
 
 			{tasks.length > 0 ? (
-				<p className="text-muted-foreground text-sm">
-					{doneCount}/{tasks.length} concluídas
-				</p>
+				<div className="flex items-center gap-3">
+					<Progress value={(doneCount / tasks.length) * 100} className="h-2" />
+					<span className="whitespace-nowrap text-muted-foreground text-xs">
+						{doneCount}/{tasks.length}
+					</span>
+				</div>
 			) : null}
 
 			{query.isLoading ? (
 				<div className="flex flex-col gap-2">
 					{[0, 1, 2].map((i) => (
-						<div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
+						<Skeleton key={i} className="h-14 w-full rounded-lg" />
 					))}
 				</div>
 			) : tasks.length === 0 ? (
-				<div className="flex flex-1 flex-col items-center justify-center gap-1 py-16 text-center">
-					<p className="font-medium">Nada por aqui</p>
-					<p className="text-muted-foreground text-sm">
-						Adicione sua primeira tarefa acima.
-					</p>
-				</div>
+				<Empty className="flex-1">
+					<EmptyHeader>
+						<EmptyTitle>Nada por aqui</EmptyTitle>
+						<EmptyDescription>Adicione sua primeira tarefa acima.</EmptyDescription>
+					</EmptyHeader>
+				</Empty>
 			) : (
 				<div className="flex flex-col gap-2">
 					{tasks.map((task) => (
@@ -160,10 +181,10 @@ function TodayPage() {
 				open={creating}
 				onOpenChange={setCreating}
 				isSaving={mutations.createTask.isPending}
+				initial={{ startsOn: date }}
 				onSubmit={async (values) => {
 					await mutations.createTask.mutateAsync({
 						...values,
-						startsOn: date,
 						timezone: getLocalTimezone(),
 					});
 				}}

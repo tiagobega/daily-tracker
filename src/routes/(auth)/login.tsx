@@ -1,6 +1,29 @@
 import { useForm } from '@tanstack/react-form';
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
+import { Button } from '#/components/ui/button';
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from '#/components/ui/card';
+import {
+	Field,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+} from '#/components/ui/field';
+import { Input } from '#/components/ui/input';
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupButton,
+	InputGroupInput,
+} from '#/components/ui/input-group';
+import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs';
 import { credentialsSchema, signInFn, signUpFn } from '#/lib/supabase/auth';
 
 export const Route = createFileRoute('/(auth)/login')({
@@ -50,109 +73,112 @@ function LoginPage() {
 	});
 
 	return (
-		<main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 p-6">
-			<div className="text-center">
-				<h1 className="font-bold text-2xl">Daily Tracker</h1>
-				<p className="mt-1 text-muted-foreground text-sm">
-					{mode === 'signin' ? 'Entre na sua conta' : 'Crie sua conta'}
-				</p>
-			</div>
+		<main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center p-6">
+			<Card>
+				<CardHeader className="text-center">
+					<CardTitle className="text-2xl">Daily Tracker</CardTitle>
+					<CardDescription>
+						{mode === 'signin' ? 'Entre na sua conta' : 'Crie sua conta'}
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<Tabs
+						value={mode}
+						onValueChange={(v) => setMode(v as 'signin' | 'signup')}
+						className="mb-6"
+					>
+						<TabsList className="grid w-full grid-cols-2">
+							<TabsTrigger value="signin">Entrar</TabsTrigger>
+							<TabsTrigger value="signup">Criar conta</TabsTrigger>
+						</TabsList>
+					</Tabs>
 
-			<div className="grid grid-cols-2 rounded-md border p-1 text-sm">
-				<button
-					type="button"
-					onClick={() => setMode('signin')}
-					className={`rounded py-1.5 font-medium ${mode === 'signin' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}
-				>
-					Entrar
-				</button>
-				<button
-					type="button"
-					onClick={() => setMode('signup')}
-					className={`rounded py-1.5 font-medium ${mode === 'signup' ? 'bg-foreground text-background' : 'text-muted-foreground'}`}
-				>
-					Criar conta
-				</button>
-			</div>
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							form.handleSubmit();
+						}}
+					>
+						<FieldGroup>
+							<form.Field name="email">
+								{(field) => {
+									const err = fieldError(field.state.meta.errors);
+									return (
+										<Field data-invalid={err ? true : undefined}>
+											<FieldLabel htmlFor="email">E-mail</FieldLabel>
+											<Input
+												id="email"
+												type="email"
+												autoComplete="email"
+												aria-invalid={err ? true : undefined}
+												value={field.state.value}
+												onBlur={field.handleBlur}
+												onChange={(e) => field.handleChange(e.target.value)}
+											/>
+											{err ? <FieldError>{err}</FieldError> : null}
+										</Field>
+									);
+								}}
+							</form.Field>
 
-			<form
-				className="flex flex-col gap-4"
-				onSubmit={(e) => {
-					e.preventDefault();
-					form.handleSubmit();
-				}}
-			>
-				<form.Field name="email">
-					{(field) => (
-						<div className="flex flex-col gap-1">
-							{/** biome-ignore lint/a11y/noLabelWithoutControl: input is rendered right below */}
-							<label className="font-medium text-sm">E-mail</label>
-							<input
-								type="email"
-								autoComplete="email"
-								value={field.state.value}
-								onBlur={field.handleBlur}
-								onChange={(e) => field.handleChange(e.target.value)}
-								className="rounded-md border px-3 py-2 text-sm"
-							/>
-							{fieldError(field.state.meta.errors) ? (
-								<p className="text-destructive text-xs">
-									{fieldError(field.state.meta.errors)}
-								</p>
+							<form.Field name="password">
+								{(field) => {
+									const err = fieldError(field.state.meta.errors);
+									return (
+										<Field data-invalid={err ? true : undefined}>
+											<FieldLabel htmlFor="password">Senha</FieldLabel>
+											<InputGroup>
+												<InputGroupInput
+													id="password"
+													type={showPassword ? 'text' : 'password'}
+													autoComplete={
+														mode === 'signin' ? 'current-password' : 'new-password'
+													}
+													aria-invalid={err ? true : undefined}
+													value={field.state.value}
+													onBlur={field.handleBlur}
+													onChange={(e) => field.handleChange(e.target.value)}
+												/>
+												<InputGroupAddon align="inline-end">
+													<InputGroupButton
+														type="button"
+														size="icon-sm"
+														aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+														onClick={() => setShowPassword((v) => !v)}
+													>
+														{showPassword ? (
+															<EyeOff className="size-4" />
+														) : (
+															<Eye className="size-4" />
+														)}
+													</InputGroupButton>
+												</InputGroupAddon>
+											</InputGroup>
+											{err ? <FieldError>{err}</FieldError> : null}
+										</Field>
+									);
+								}}
+							</form.Field>
+
+							{formError ? (
+								<p className="text-destructive text-sm">{formError}</p>
 							) : null}
-						</div>
-					)}
-				</form.Field>
 
-				<form.Field name="password">
-					{(field) => (
-						<div className="flex flex-col gap-1">
-							{/** biome-ignore lint/a11y/noLabelWithoutControl: input is rendered right below */}
-							<label className="font-medium text-sm">Senha</label>
-							<div className="flex items-center rounded-md border">
-								<input
-									type={showPassword ? 'text' : 'password'}
-									autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(e) => field.handleChange(e.target.value)}
-									className="flex-1 bg-transparent px-3 py-2 text-sm outline-none"
-								/>
-								<button
-									type="button"
-									onClick={() => setShowPassword((v) => !v)}
-									className="px-3 text-muted-foreground text-xs"
-								>
-									{showPassword ? 'Ocultar' : 'Mostrar'}
-								</button>
-							</div>
-							{fieldError(field.state.meta.errors) ? (
-								<p className="text-destructive text-xs">
-									{fieldError(field.state.meta.errors)}
-								</p>
-							) : null}
-						</div>
-					)}
-				</form.Field>
-
-				{formError ? <p className="text-destructive text-sm">{formError}</p> : null}
-
-				<form.Subscribe selector={(s) => s.isSubmitting}>
-					{(isSubmitting) => (
-						<button
-							type="submit"
-							disabled={isSubmitting}
-							className="rounded-md bg-foreground px-4 py-2 font-medium text-background text-sm disabled:opacity-50"
-						>
-							{isSubmitting
-								? 'Aguarde…'
-								: mode === 'signin'
-									? 'Entrar'
-									: 'Criar conta'}
-						</button>
-					)}
-				</form.Subscribe>
-			</form>
+							<form.Subscribe selector={(s) => s.isSubmitting}>
+								{(isSubmitting) => (
+									<Button type="submit" className="w-full" disabled={isSubmitting}>
+										{isSubmitting
+											? 'Aguarde…'
+											: mode === 'signin'
+												? 'Entrar'
+												: 'Criar conta'}
+									</Button>
+								)}
+							</form.Subscribe>
+						</FieldGroup>
+					</form>
+				</CardContent>
+			</Card>
 		</main>
 	);
 }
