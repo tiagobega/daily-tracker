@@ -1,0 +1,122 @@
+import { EllipsisVertical } from 'lucide-react';
+import { useState } from 'react';
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '#/components/ui/alert-dialog';
+import { Button } from '#/components/ui/button';
+import { Checkbox } from '#/components/ui/checkbox';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from '#/components/ui/dropdown-menu';
+import { cn } from '#/lib/utils';
+import type { DayTask } from '../server';
+import type { useTaskMutations } from '../use-task-mutations';
+import { TaskEditSheet } from './task-edit-sheet';
+
+const PRIORITY_LABEL: Record<string, string> = {
+	low: 'Baixa',
+	high: 'Alta',
+};
+
+export function TaskItem({
+	task,
+	date,
+	mutations,
+}: {
+	task: DayTask;
+	date: string;
+	mutations: ReturnType<typeof useTaskMutations>;
+}) {
+	const [editing, setEditing] = useState(false);
+	const [confirmArchive, setConfirmArchive] = useState(false);
+	const done = task.status === 'done';
+	const time = task.time_of_day?.slice(0, 5);
+	const priorityLabel = PRIORITY_LABEL[task.priority];
+	const subtitle = [time, priorityLabel].filter(Boolean).join(' · ');
+
+	return (
+		<div className="flex items-center gap-3 rounded-lg border p-3">
+			<Checkbox
+				checked={done}
+				aria-label={done ? 'Marcar como não concluída' : 'Concluir'}
+				onCheckedChange={(checked) =>
+					mutations.toggleCompletion.mutate({
+						taskId: task.id,
+						occurrenceDate: date,
+						completed: checked === true,
+					})
+				}
+			/>
+
+			<div className="min-w-0 flex-1">
+				<p
+					className={cn(
+						'truncate font-medium',
+						done && 'text-muted-foreground line-through',
+					)}
+				>
+					{task.title}
+				</p>
+				{subtitle ? (
+					<p className="text-muted-foreground text-xs">{subtitle}</p>
+				) : null}
+			</div>
+
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button variant="ghost" size="icon" aria-label="Ações">
+						<EllipsisVertical className="size-4" />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end">
+					<DropdownMenuItem onSelect={() => setEditing(true)}>
+						Editar
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						className="text-destructive focus:text-destructive"
+						onSelect={() => setConfirmArchive(true)}
+					>
+						Arquivar
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+
+			<TaskEditSheet
+				task={task}
+				open={editing}
+				onOpenChange={setEditing}
+				isSaving={mutations.updateTask.isPending}
+				onSubmit={async (values) => {
+					await mutations.updateTask.mutateAsync({ id: task.id, ...values });
+				}}
+			/>
+
+			<AlertDialog open={confirmArchive} onOpenChange={setConfirmArchive}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Arquivar tarefa?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Ela sai da sua lista, mas o histórico de conclusões é mantido.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancelar</AlertDialogCancel>
+						<AlertDialogAction onClick={() => mutations.archiveTask.mutate(task.id)}>
+							Arquivar
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</div>
+	);
+}
