@@ -21,7 +21,7 @@ import {
 import { cn } from '#/lib/utils';
 import type { DayTask } from '../server';
 import type { useTaskMutations } from '../use-task-mutations';
-import { TaskEditSheet } from './task-edit-sheet';
+import { TaskFormSheet } from './task-form-sheet';
 
 const PRIORITY_LABEL: Record<string, string> = {
 	low: 'Baixa',
@@ -40,7 +40,7 @@ export function TaskItem({
 	const [editing, setEditing] = useState(false);
 	const [confirmArchive, setConfirmArchive] = useState(false);
 	const done = task.status === 'done';
-	const time = task.time_of_day?.slice(0, 5);
+	const time = task.timeOfDay?.slice(0, 5);
 	const priorityLabel = PRIORITY_LABEL[task.priority];
 	const subtitle = [time, priorityLabel].filter(Boolean).join(' · ');
 
@@ -51,7 +51,7 @@ export function TaskItem({
 				aria-label={done ? 'Marcar como não concluída' : 'Concluir'}
 				onCheckedChange={(checked) =>
 					mutations.toggleCompletion.mutate({
-						taskId: task.id,
+						taskId: task.taskId,
 						occurrenceDate: date,
 						completed: checked === true,
 					})
@@ -91,13 +91,23 @@ export function TaskItem({
 				</DropdownMenuContent>
 			</DropdownMenu>
 
-			<TaskEditSheet
-				task={task}
+			<TaskFormSheet
+				heading="Editar tarefa"
 				open={editing}
 				onOpenChange={setEditing}
 				isSaving={mutations.updateTask.isPending}
+				initial={{
+					title: task.title,
+					description: task.description,
+					timeOfDay: task.timeOfDay,
+					priority: task.priority as 'low' | 'medium' | 'high',
+					recurrenceRule: task.recurrenceRule,
+				}}
 				onSubmit={async (values) => {
-					await mutations.updateTask.mutateAsync({ id: task.id, ...values });
+					await mutations.updateTask.mutateAsync({
+						id: task.taskId,
+						...values,
+					});
 				}}
 			/>
 
@@ -111,7 +121,9 @@ export function TaskItem({
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancelar</AlertDialogCancel>
-						<AlertDialogAction onClick={() => mutations.archiveTask.mutate(task.id)}>
+						<AlertDialogAction
+							onClick={() => mutations.archiveTask.mutate(task.taskId)}
+						>
 							Arquivar
 						</AlertDialogAction>
 					</AlertDialogFooter>

@@ -11,8 +11,9 @@ import {
 	SheetTitle,
 } from '#/components/ui/sheet';
 import { Textarea } from '#/components/ui/textarea';
+import type { RecurrenceRule } from '#/lib/recurrence-rule';
 import { cn } from '#/lib/utils';
-import type { DayTask } from '../server';
+import { RecurrenceEditor } from './recurrence-editor';
 
 const PRIORITIES = [
 	['low', 'Baixa'],
@@ -22,32 +23,45 @@ const PRIORITIES = [
 
 type Priority = (typeof PRIORITIES)[number][0];
 
-export type TaskEditValues = {
+export type TaskFormValues = {
 	title: string;
 	description: string | null;
 	timeOfDay: string | null;
 	priority: Priority;
+	isRecurring: boolean;
+	recurrenceRule: RecurrenceRule | null;
 };
 
-export function TaskEditSheet({
-	task,
+export type TaskFormInitial = {
+	title?: string;
+	description?: string | null;
+	timeOfDay?: string | null;
+	priority?: Priority;
+	recurrenceRule?: RecurrenceRule | null;
+};
+
+export function TaskFormSheet({
 	open,
 	onOpenChange,
-	onSubmit,
+	heading,
+	initial,
 	isSaving,
+	onSubmit,
 }: {
-	task: DayTask;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSubmit: (values: TaskEditValues) => Promise<void>;
+	heading: string;
+	initial?: TaskFormInitial;
 	isSaving: boolean;
+	onSubmit: (values: TaskFormValues) => Promise<void>;
 }) {
 	const form = useForm({
 		defaultValues: {
-			title: task.title,
-			description: task.description ?? '',
-			timeOfDay: task.time_of_day?.slice(0, 5) ?? '',
-			priority: task.priority as Priority,
+			title: initial?.title ?? '',
+			description: initial?.description ?? '',
+			timeOfDay: initial?.timeOfDay?.slice(0, 5) ?? '',
+			priority: initial?.priority ?? ('medium' as Priority),
+			recurrenceRule: initial?.recurrenceRule ?? null,
 		},
 		onSubmit: async ({ value }) => {
 			await onSubmit({
@@ -55,21 +69,27 @@ export function TaskEditSheet({
 				description: value.description.trim() || null,
 				timeOfDay: value.timeOfDay || null,
 				priority: value.priority,
+				isRecurring: value.recurrenceRule !== null,
+				recurrenceRule: value.recurrenceRule,
 			});
+			form.reset();
 			onOpenChange(false);
 		},
 	});
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent side="bottom" className="mx-auto max-w-md">
+			<SheetContent
+				side="bottom"
+				className="mx-auto max-h-[90dvh] max-w-md overflow-y-auto"
+			>
 				<SheetHeader>
-					<SheetTitle>Editar tarefa</SheetTitle>
-					<SheetDescription>Altere os detalhes da tarefa.</SheetDescription>
+					<SheetTitle>{heading}</SheetTitle>
+					<SheetDescription>Preencha os detalhes da tarefa.</SheetDescription>
 				</SheetHeader>
 
 				<form
-					className="flex flex-col gap-4 px-4"
+					className="flex flex-col gap-4 px-4 pb-4"
 					onSubmit={(e) => {
 						e.preventDefault();
 						form.handleSubmit();
@@ -78,9 +98,9 @@ export function TaskEditSheet({
 					<form.Field name="title">
 						{(field) => (
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="edit-title">Título</Label>
+								<Label htmlFor="task-title">Título</Label>
 								<Input
-									id="edit-title"
+									id="task-title"
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
@@ -92,10 +112,10 @@ export function TaskEditSheet({
 					<form.Field name="description">
 						{(field) => (
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="edit-description">Descrição</Label>
+								<Label htmlFor="task-description">Descrição</Label>
 								<Textarea
-									id="edit-description"
-									rows={3}
+									id="task-description"
+									rows={2}
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
@@ -107,9 +127,9 @@ export function TaskEditSheet({
 					<form.Field name="timeOfDay">
 						{(field) => (
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="edit-time">Horário</Label>
+								<Label htmlFor="task-time">Horário</Label>
 								<Input
-									id="edit-time"
+									id="task-time"
 									type="time"
 									value={field.state.value}
 									onBlur={field.handleBlur}
@@ -139,6 +159,15 @@ export function TaskEditSheet({
 									))}
 								</div>
 							</div>
+						)}
+					</form.Field>
+
+					<form.Field name="recurrenceRule">
+						{(field) => (
+							<RecurrenceEditor
+								value={field.state.value}
+								onChange={(v) => field.handleChange(v)}
+							/>
 						)}
 					</form.Field>
 

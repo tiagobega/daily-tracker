@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, LogOut, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
+import { TaskFormSheet } from '#/features/tasks/components/task-form-sheet';
 import { TaskItem } from '#/features/tasks/components/task-item';
 import { dayTasksQueryOptions } from '#/features/tasks/queries';
 import { useTaskMutations } from '#/features/tasks/use-task-mutations';
@@ -23,6 +24,7 @@ function TodayPage() {
 	const router = useRouter();
 	const [date, setDate] = useState(() => todayISO());
 	const [title, setTitle] = useState('');
+	const [creating, setCreating] = useState(false);
 	const isToday = date === todayISO();
 
 	const query = useQuery(dayTasksQueryOptions(date));
@@ -133,10 +135,39 @@ function TodayPage() {
 			) : (
 				<div className="flex flex-col gap-2">
 					{tasks.map((task) => (
-						<TaskItem key={task.id} task={task} date={date} mutations={mutations} />
+						<TaskItem
+							key={task.taskId}
+							task={task}
+							date={date}
+							mutations={mutations}
+						/>
 					))}
 				</div>
 			)}
+
+			<Button
+				type="button"
+				size="icon"
+				aria-label="Nova tarefa"
+				className="fixed right-4 bottom-20 z-10 size-14 rounded-full shadow-lg"
+				onClick={() => setCreating(true)}
+			>
+				<Plus className="size-6" />
+			</Button>
+
+			<TaskFormSheet
+				heading="Nova tarefa"
+				open={creating}
+				onOpenChange={setCreating}
+				isSaving={mutations.createTask.isPending}
+				onSubmit={async (values) => {
+					await mutations.createTask.mutateAsync({
+						...values,
+						startsOn: date,
+						timezone: getLocalTimezone(),
+					});
+				}}
+			/>
 		</main>
 	);
 }

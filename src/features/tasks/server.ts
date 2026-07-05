@@ -1,7 +1,15 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
+import { recurrenceRuleSchema } from '#/lib/recurrence-rule';
 import { getSupabaseServerClient } from '#/lib/supabase/server';
 import type { TablesUpdate } from '#/lib/supabase/types';
+import {
+	type EngineCompletion,
+	type EngineOverride,
+	type EngineTask,
+	expandOccurrences,
+	type Occurrence,
+} from './recurrence';
 
 // Every mutation resolves the user from the session and sets user_id
 // explicitly (the RLS WITH CHECK requires user_id = auth.uid()).
@@ -18,13 +26,15 @@ async function requireUser() {
 
 export const createTaskSchema = z.object({
 	title: z.string().trim().min(1, 'Informe um título.'),
-	description: z.string().trim().optional(),
+	description: z.string().trim().nullish(),
 	startsOn: z.string(), // YYYY-MM-DD
-	timeOfDay: z.string().optional(), // HH:MM
+	timeOfDay: z.string().nullish(), // HH:MM
 	timezone: z.string(),
 	categoryId: z.uuid().nullish(),
 	priority: z.enum(['low', 'medium', 'high']).default('medium'),
 	estimatedMinutes: z.number().int().positive().nullish(),
+	isRecurring: z.boolean().default(false),
+	recurrenceRule: recurrenceRuleSchema.nullish(),
 });
 
 export const updateTaskSchema = z.object({
@@ -36,6 +46,8 @@ export const updateTaskSchema = z.object({
 	categoryId: z.uuid().nullish(),
 	priority: z.enum(['low', 'medium', 'high']).optional(),
 	estimatedMinutes: z.number().int().positive().nullish(),
+	isRecurring: z.boolean().optional(),
+	recurrenceRule: recurrenceRuleSchema.nullish(),
 });
 
 const idSchema = z.object({ id: z.uuid() });
@@ -68,7 +80,8 @@ export const createTaskFn = createServerFn({ method: 'POST' })
 				category_id: data.categoryId ?? null,
 				priority: data.priority,
 				estimated_minutes: data.estimatedMinutes ?? null,
-				is_recurring: false,
+				is_recurring: data.isRecurring,
+				recurrence_rule: data.recurrenceRule ?? null,
 			})
 			.select()
 			.single();
@@ -89,6 +102,9 @@ export const updateTaskFn = createServerFn({ method: 'POST' })
 		if (data.priority !== undefined) patch.priority = data.priority;
 		if (data.estimatedMinutes !== undefined)
 			patch.estimated_minutes = data.estimatedMinutes;
+		if (data.isRecurring !== undefined) patch.is_recurring = data.isRecurring;
+		if (data.recurrenceRule !== undefined)
+			patch.recurrence_rule = data.recurrenceRule;
 
 		const { data: task, error } = await supabase
 			.from('tasks')
@@ -142,37 +158,64 @@ export const toggleCompletionFn = createServerFn({ method: 'POST' })
 		return { ok: true };
 	});
 
-// Tasks for a given day (non-recurring, starts_on == date), each with its
-// completion for that date. Provisional query — replaced by the recurrence
-// engine in Fase 4 (see plan-docs/08).
+// Occurrences for a given day, computed by the recurrence engine (plan-docs/04):
+// candidate tasks are expanded, overrides and completions for that date applied.
 export const listDayTasksFn = createServerFn({ method: 'GET' })
 	.validator(daySchema)
-	.handler(async ({ data }) => {
+	.handler(async ({ data }): Promise<Occurrence[]> => {
 		const { supabase } = await requireUser();
-		const [tasksRes, completionsRes] = await Promise.all([
+		const [tasksRes, overridesRes, completionsRes] = await Promise.all([
 			supabase
 				.from('tasks')
 				.select('*')
-				.eq('starts_on', data.date)
 				.is('archived_at', null)
-				.order('time_of_day', { nullsFirst: false })
-				.order('title'),
+				.lte('starts_on', data.date),
+			supabase.from('task_overrides').select('*').eq('occurrence_date', data.date),
 			supabase
 				.from('task_completions')
 				.select('*')
 				.eq('occurrence_date', data.date),
 		]);
 		if (tasksRes.error) throw new Error(tasksRes.error.message);
+		if (overridesRes.error) throw new Error(overridesRes.error.message);
 		if (completionsRes.error) throw new Error(completionsRes.error.message);
 
-		const statusByTask = new Map(
-			(completionsRes.data ?? []).map((c) => [c.task_id, c.status]),
-		);
-		return (tasksRes.data ?? []).map((t) => ({
-			...t,
-			status: (statusByTask.get(t.id) ?? null) as CompletionStatus,
+		const tasks: EngineTask[] = (tasksRes.data ?? []).map((t) => ({
+			id: t.id,
+			title: t.title,
+			description: t.description,
+			categoryId: t.category_id,
+			priority: t.priority,
+			startsOn: t.starts_on,
+			timeOfDay: t.time_of_day,
+			isRecurring: t.is_recurring,
+			recurrenceRule: t.recurrence_rule,
 		}));
+		const overrides: EngineOverride[] = (overridesRes.data ?? []).map((o) => ({
+			taskId: o.task_id,
+			occurrenceDate: o.occurrence_date,
+			title: o.title,
+			description: o.description,
+			timeOfDay: o.time_of_day,
+			categoryId: o.category_id,
+			isCancelled: o.is_cancelled,
+		}));
+		const completions: EngineCompletion[] = (completionsRes.data ?? []).map(
+			(c) => ({
+				taskId: c.task_id,
+				occurrenceDate: c.occurrence_date,
+				status: c.status as EngineCompletion['status'],
+			}),
+		);
+
+		return expandOccurrences({
+			tasks,
+			overrides,
+			completions,
+			from: data.date,
+			to: data.date,
+		});
 	});
 
-export type CompletionStatus = 'done' | 'skipped' | 'partial' | null;
-export type DayTask = Awaited<ReturnType<typeof listDayTasksFn>>[number];
+export type { CompletionStatus } from './recurrence';
+export type DayTask = Occurrence;

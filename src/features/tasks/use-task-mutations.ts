@@ -55,7 +55,7 @@ export function useTaskMutations(date: string) {
 			const prev = qc.getQueryData<DayTask[]>(key);
 			qc.setQueryData<DayTask[]>(key, (old) =>
 				old?.map((t) =>
-					t.id === input.taskId
+					t.taskId === input.taskId
 						? { ...t, status: input.completed ? 'done' : null }
 						: t,
 				),
