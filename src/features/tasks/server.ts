@@ -158,6 +158,59 @@ export const toggleCompletionFn = createServerFn({ method: 'POST' })
 		return { ok: true };
 	});
 
+export const upsertOverrideSchema = z.object({
+	taskId: z.uuid(),
+	occurrenceDate: z.string(),
+	title: z.string().trim().nullish(),
+	description: z.string().trim().nullish(),
+	timeOfDay: z.string().nullish(),
+	isCancelled: z.boolean().default(false),
+});
+export type UpsertOverrideInput = z.input<typeof upsertOverrideSchema>;
+
+const overrideKeySchema = z.object({
+	taskId: z.uuid(),
+	occurrenceDate: z.string(),
+});
+export type OverrideKeyInput = z.input<typeof overrideKeySchema>;
+
+// Create/replace the override for a single occurrence (task_id, occurrence_date).
+// A field edit sets title/description/time; "cancel this day" sets is_cancelled.
+// The main task is never touched (see plan-docs/04).
+export const upsertOverrideFn = createServerFn({ method: 'POST' })
+	.validator(upsertOverrideSchema)
+	.handler(async ({ data }) => {
+		const { supabase, userId } = await requireUser();
+		const { error } = await supabase.from('task_overrides').upsert(
+			{
+				user_id: userId,
+				task_id: data.taskId,
+				occurrence_date: data.occurrenceDate,
+				title: data.title ?? null,
+				description: data.description ?? null,
+				time_of_day: data.timeOfDay ?? null,
+				is_cancelled: data.isCancelled,
+			},
+			{ onConflict: 'task_id,occurrence_date' },
+		);
+		if (error) throw new Error(error.message);
+		return { ok: true };
+	});
+
+// Remove an override, reverting the occurrence to the series default.
+export const deleteOverrideFn = createServerFn({ method: 'POST' })
+	.validator(overrideKeySchema)
+	.handler(async ({ data }) => {
+		const { supabase } = await requireUser();
+		const { error } = await supabase
+			.from('task_overrides')
+			.delete()
+			.eq('task_id', data.taskId)
+			.eq('occurrence_date', data.occurrenceDate);
+		if (error) throw new Error(error.message);
+		return { ok: true };
+	});
+
 // Occurrences for a given day, computed by the recurrence engine (plan-docs/04):
 // candidate tasks are expanded, overrides and completions for that date applied.
 export const listDayTasksFn = createServerFn({ method: 'GET' })

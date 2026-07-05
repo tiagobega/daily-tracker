@@ -176,7 +176,7 @@ describe('expandOccurrences — overrides e conclusões', () => {
 		);
 	});
 
-	it('cancelamento: remove a ocorrência do dia', () => {
+	it('cancelamento: mantém a ocorrência marcada como cancelada', () => {
 		const occ = expand([daily], '2026-07-07', '2026-07-09', {
 			overrides: [
 				{
@@ -190,10 +190,12 @@ describe('expandOccurrences — overrides e conclusões', () => {
 				},
 			],
 		});
-		expect(occ.map((o) => o.occurrenceDate)).toEqual([
-			'2026-07-07',
-			'2026-07-09',
-		]);
+		// All three dates present; the 8th is flagged cancelled.
+		expect(occ).toHaveLength(3);
+		const cancelled = occ.filter((o) => o.isCancelled);
+		expect(cancelled.map((o) => o.occurrenceDate)).toEqual(['2026-07-08']);
+		// Consumers filter cancelled out of the active list.
+		expect(occ.filter((o) => !o.isCancelled)).toHaveLength(2);
 	});
 
 	it('conclusão: status anexado só no dia concluído', () => {

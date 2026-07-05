@@ -58,7 +58,7 @@ Passos, para a janela `[from, to]`:
    - Pontual → uma ocorrência em `starts_on` se cair na janela.
    - Recorrente → converter `recurrence_rule` (jsonb) para `RRule` e chamar `RRule.between(from, to)`, com `starts_on` como DTSTART e `recurrence_rule.until` como UNTIL.
 3. **Aplicar overrides** por `(task_id, occurrence_date)`:
-   - `is_cancelled = true` → **remover** a ocorrência.
+   - `is_cancelled = true` → manter a ocorrência **marcada** (`isCancelled: true`), não removê-la — a UI mostra numa seção "Canceladas" com opção de restaurar; consumidores (tela do dia, calendário) filtram as canceladas da lista ativa.
    - Campos não-null (`title`, `description`, `time_of_day`, `category_id`) → sobrescrever os da task.
 4. **Anexar status:** se existir `task_completion` para `(task_id, occurrence_date)`, anexar seu `status` (`done`/`skipped`/`partial`); senão, pendente.
 5. **Emitir view models** de ocorrência e ordenar por horário:
@@ -73,6 +73,7 @@ Occurrence = {
   categoryId,            // override.category_id ?? task.category_id
   status,                // 'done' | 'skipped' | 'partial' | null (pendente)
   isOverride,            // houve override aplicado?
+  isCancelled,           // override cancelou este dia (filtrar da lista ativa)
   isRecurring,
 }
 ```

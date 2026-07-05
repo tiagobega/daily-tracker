@@ -59,6 +59,7 @@ export type Occurrence = {
 	isRecurring: boolean;
 	recurrenceRule: RecurrenceRule | null;
 	isOverride: boolean;
+	isCancelled: boolean;
 	status: CompletionStatus;
 };
 
@@ -139,7 +140,8 @@ export function expandOccurrences({
 	for (const task of tasks) {
 		for (const date of occurrenceDates(task, from, to)) {
 			const ov = overrideMap.get(key(task.id, date));
-			if (ov?.isCancelled) continue;
+			// Cancelled occurrences are kept (flagged) so the UI can offer to
+			// restore them; consumers filter them out of the active list.
 			result.push({
 				taskId: task.id,
 				occurrenceDate: date,
@@ -152,6 +154,7 @@ export function expandOccurrences({
 				isRecurring: task.isRecurring,
 				recurrenceRule: task.recurrenceRule,
 				isOverride: Boolean(ov),
+				isCancelled: ov?.isCancelled ?? false,
 				status: statusMap.get(key(task.id, date)) ?? null,
 			});
 		}

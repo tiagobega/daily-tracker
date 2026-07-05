@@ -17,11 +17,13 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu';
 import { cn } from '#/lib/utils';
 import type { DayTask } from '../server';
 import type { useTaskMutations } from '../use-task-mutations';
+import { OccurrenceEditSheet } from './occurrence-edit-sheet';
 import { TaskFormSheet } from './task-form-sheet';
 
 const PRIORITY_LABEL: Record<string, string> = {
@@ -38,8 +40,10 @@ export function TaskItem({
 	date: string;
 	mutations: ReturnType<typeof useTaskMutations>;
 }) {
-	const [editing, setEditing] = useState(false);
+	const [editingSeries, setEditingSeries] = useState(false);
+	const [editingDay, setEditingDay] = useState(false);
 	const [confirmArchive, setConfirmArchive] = useState(false);
+	const [confirmCancel, setConfirmCancel] = useState(false);
 	const done = task.status === 'done';
 	const time = task.timeOfDay?.slice(0, 5);
 	const priorityLabel = PRIORITY_LABEL[task.priority];
@@ -88,9 +92,36 @@ export function TaskItem({
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
-					<DropdownMenuItem onSelect={() => setEditing(true)}>
-						Editar
-					</DropdownMenuItem>
+					{task.isRecurring ? (
+						<>
+							<DropdownMenuItem onSelect={() => setEditingDay(true)}>
+								Editar só este dia
+							</DropdownMenuItem>
+							<DropdownMenuItem onSelect={() => setEditingSeries(true)}>
+								Editar toda a série
+							</DropdownMenuItem>
+							<DropdownMenuItem onSelect={() => setConfirmCancel(true)}>
+								Cancelar este dia
+							</DropdownMenuItem>
+							{task.isOverride ? (
+								<DropdownMenuItem
+									onSelect={() =>
+										mutations.deleteOverride.mutate({
+											taskId: task.taskId,
+											occurrenceDate: date,
+										})
+									}
+								>
+									Restaurar padrão do dia
+								</DropdownMenuItem>
+							) : null}
+						</>
+					) : (
+						<DropdownMenuItem onSelect={() => setEditingSeries(true)}>
+							Editar
+						</DropdownMenuItem>
+					)}
+					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						className="text-destructive focus:text-destructive"
 						onSelect={() => setConfirmArchive(true)}
@@ -102,8 +133,8 @@ export function TaskItem({
 
 			<TaskFormSheet
 				heading="Editar tarefa"
-				open={editing}
-				onOpenChange={setEditing}
+				open={editingSeries}
+				onOpenChange={setEditingSeries}
 				isSaving={mutations.updateTask.isPending}
 				initial={{
 					title: task.title,
@@ -117,6 +148,21 @@ export function TaskItem({
 					await mutations.updateTask.mutateAsync({
 						id: task.taskId,
 						...values,
+					});
+				}}
+			/>
+
+			<OccurrenceEditSheet
+				occurrence={task}
+				open={editingDay}
+				onOpenChange={setEditingDay}
+				isSaving={mutations.upsertOverride.isPending}
+				onSubmit={async (values) => {
+					await mutations.upsertOverride.mutateAsync({
+						taskId: task.taskId,
+						occurrenceDate: date,
+						...values,
+						isCancelled: false,
 					});
 				}}
 			/>
@@ -135,6 +181,32 @@ export function TaskItem({
 							onClick={() => mutations.archiveTask.mutate(task.taskId)}
 						>
 							Arquivar
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Cancelar este dia?</AlertDialogTitle>
+						<AlertDialogDescription>
+							A tarefa não aparecerá nesta data. A série continua nos demais dias, e dá
+							para restaurar depois.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Voltar</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={() =>
+								mutations.upsertOverride.mutate({
+									taskId: task.taskId,
+									occurrenceDate: date,
+									isCancelled: true,
+								})
+							}
+						>
+							Cancelar o dia
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

@@ -6,10 +6,14 @@ import {
 	type CreateTaskInput,
 	createTaskFn,
 	type DayTask,
+	deleteOverrideFn,
+	type OverrideKeyInput,
 	type ToggleCompletionInput,
 	toggleCompletionFn,
 	type UpdateTaskInput,
+	type UpsertOverrideInput,
 	updateTaskFn,
+	upsertOverrideFn,
 } from './server';
 
 function errMsg(e: unknown, fallback: string) {
@@ -69,5 +73,30 @@ export function useTaskMutations(date: string) {
 		onSettled: () => invalidate(),
 	});
 
-	return { createTask, updateTask, archiveTask, toggleCompletion };
+	const upsertOverride = useMutation({
+		mutationFn: (input: UpsertOverrideInput) => upsertOverrideFn({ data: input }),
+		onSuccess: () => {
+			invalidate();
+			toast.success('Dia atualizado.');
+		},
+		onError: (e) => toast.error(errMsg(e, 'Não foi possível salvar o dia.')),
+	});
+
+	const deleteOverride = useMutation({
+		mutationFn: (input: OverrideKeyInput) => deleteOverrideFn({ data: input }),
+		onSuccess: () => {
+			invalidate();
+			toast.success('Dia restaurado ao padrão da série.');
+		},
+		onError: (e) => toast.error(errMsg(e, 'Não foi possível restaurar.')),
+	});
+
+	return {
+		createTask,
+		updateTask,
+		archiveTask,
+		toggleCompletion,
+		upsertOverride,
+		deleteOverride,
+	};
 }

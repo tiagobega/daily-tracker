@@ -42,7 +42,9 @@ function TodayPage() {
 
 	const query = useQuery(dayTasksQueryOptions(date));
 	const mutations = useTaskMutations(date);
-	const tasks = query.data ?? [];
+	const occurrences = query.data ?? [];
+	const tasks = occurrences.filter((o) => !o.isCancelled);
+	const cancelled = occurrences.filter((o) => o.isCancelled);
 	const doneCount = tasks.filter((t) => t.status === 'done').length;
 
 	function handleQuickAdd(e: React.FormEvent) {
@@ -146,7 +148,7 @@ function TodayPage() {
 						<Skeleton key={i} className="h-14 w-full rounded-lg" />
 					))}
 				</div>
-			) : tasks.length === 0 ? (
+			) : occurrences.length === 0 ? (
 				<Empty className="flex-1">
 					<EmptyHeader>
 						<EmptyTitle>Nada por aqui</EmptyTitle>
@@ -165,6 +167,36 @@ function TodayPage() {
 					))}
 				</div>
 			)}
+
+			{cancelled.length > 0 ? (
+				<div className="flex flex-col gap-2">
+					<p className="font-medium text-muted-foreground text-sm">
+						Canceladas hoje
+					</p>
+					{cancelled.map((task) => (
+						<div
+							key={task.taskId}
+							className="flex items-center gap-3 rounded-lg border border-dashed p-3"
+						>
+							<span className="min-w-0 flex-1 truncate text-muted-foreground line-through">
+								{task.title}
+							</span>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() =>
+									mutations.deleteOverride.mutate({
+										taskId: task.taskId,
+										occurrenceDate: date,
+									})
+								}
+							>
+								Restaurar
+							</Button>
+						</div>
+					))}
+				</div>
+			) : null}
 
 			<Button
 				type="button"
