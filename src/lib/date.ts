@@ -19,6 +19,39 @@ export function addDaysISO(dateISO: string, days: number): string {
 	return d.toISOString().slice(0, 10);
 }
 
+// --- month grid helpers (calendar) --------------------------------------
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+// First / last day of a month as YYYY-MM-DD (month is 1-12).
+export function firstOfMonth(year: number, month: number): string {
+	return `${year}-${pad(month)}-01`;
+}
+export function lastOfMonth(year: number, month: number): string {
+	return `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
+}
+
+// Cells for a month grid: leading nulls (to align the 1st under its weekday,
+// week starting on Sunday) followed by each day's YYYY-MM-DD.
+export function monthGridCells(year: number, month: number): (string | null)[] {
+	const firstWeekday = new Date(year, month - 1, 1).getDay(); // 0=Sun
+	const days = new Date(year, month, 0).getDate();
+	const cells: (string | null)[] = Array(firstWeekday).fill(null);
+	for (let d = 1; d <= days; d++) cells.push(`${year}-${pad(month)}-${pad(d)}`);
+	return cells;
+}
+
+export function formatMonthLabel(year: number, month: number): string {
+	return new Intl.DateTimeFormat('pt-BR', {
+		month: 'long',
+		year: 'numeric',
+	}).format(new Date(year, month - 1, 1));
+}
+
+export function dayOfMonth(iso: string): number {
+	return Number(iso.slice(8, 10));
+}
+
 // Convert a local Date (from a calendar picker) to a YYYY-MM-DD string.
 export function dateToISODate(d: Date): string {
 	const y = d.getFullYear();

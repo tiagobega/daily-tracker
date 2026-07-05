@@ -211,64 +211,80 @@ export const deleteOverrideFn = createServerFn({ method: 'POST' })
 		return { ok: true };
 	});
 
-// Occurrences for a given day, computed by the recurrence engine (plan-docs/04):
-// candidate tasks are expanded, overrides and completions for that date applied.
+const rangeSchema = z.object({ from: z.string(), to: z.string() });
+
+// Shared loader: expand every active task's occurrences in [from, to], applying
+// overrides and completions for that window (plan-docs/04).
+async function loadOccurrences(
+	from: string,
+	to: string,
+): Promise<Occurrence[]> {
+	const { supabase } = await requireUser();
+	const [tasksRes, overridesRes, completionsRes] = await Promise.all([
+		supabase
+			.from('tasks')
+			.select('*')
+			.is('archived_at', null)
+			.lte('starts_on', to),
+		supabase
+			.from('task_overrides')
+			.select('*')
+			.gte('occurrence_date', from)
+			.lte('occurrence_date', to),
+		supabase
+			.from('task_completions')
+			.select('*')
+			.gte('occurrence_date', from)
+			.lte('occurrence_date', to),
+	]);
+	if (tasksRes.error) throw new Error(tasksRes.error.message);
+	if (overridesRes.error) throw new Error(overridesRes.error.message);
+	if (completionsRes.error) throw new Error(completionsRes.error.message);
+
+	const tasks: EngineTask[] = (tasksRes.data ?? []).map((t) => ({
+		id: t.id,
+		title: t.title,
+		description: t.description,
+		categoryId: t.category_id,
+		priority: t.priority,
+		startsOn: t.starts_on,
+		timeOfDay: t.time_of_day,
+		isRecurring: t.is_recurring,
+		recurrenceRule: t.recurrence_rule,
+	}));
+	const overrides: EngineOverride[] = (overridesRes.data ?? []).map((o) => ({
+		taskId: o.task_id,
+		occurrenceDate: o.occurrence_date,
+		title: o.title,
+		description: o.description,
+		timeOfDay: o.time_of_day,
+		categoryId: o.category_id,
+		isCancelled: o.is_cancelled,
+	}));
+	const completions: EngineCompletion[] = (completionsRes.data ?? []).map(
+		(c) => ({
+			taskId: c.task_id,
+			occurrenceDate: c.occurrence_date,
+			status: c.status as EngineCompletion['status'],
+		}),
+	);
+
+	return expandOccurrences({ tasks, overrides, completions, from, to });
+}
+
+// Occurrences for a single day.
 export const listDayTasksFn = createServerFn({ method: 'GET' })
 	.validator(daySchema)
-	.handler(async ({ data }): Promise<Occurrence[]> => {
-		const { supabase } = await requireUser();
-		const [tasksRes, overridesRes, completionsRes] = await Promise.all([
-			supabase
-				.from('tasks')
-				.select('*')
-				.is('archived_at', null)
-				.lte('starts_on', data.date),
-			supabase.from('task_overrides').select('*').eq('occurrence_date', data.date),
-			supabase
-				.from('task_completions')
-				.select('*')
-				.eq('occurrence_date', data.date),
-		]);
-		if (tasksRes.error) throw new Error(tasksRes.error.message);
-		if (overridesRes.error) throw new Error(overridesRes.error.message);
-		if (completionsRes.error) throw new Error(completionsRes.error.message);
+	.handler(
+		({ data }): Promise<Occurrence[]> => loadOccurrences(data.date, data.date),
+	);
 
-		const tasks: EngineTask[] = (tasksRes.data ?? []).map((t) => ({
-			id: t.id,
-			title: t.title,
-			description: t.description,
-			categoryId: t.category_id,
-			priority: t.priority,
-			startsOn: t.starts_on,
-			timeOfDay: t.time_of_day,
-			isRecurring: t.is_recurring,
-			recurrenceRule: t.recurrence_rule,
-		}));
-		const overrides: EngineOverride[] = (overridesRes.data ?? []).map((o) => ({
-			taskId: o.task_id,
-			occurrenceDate: o.occurrence_date,
-			title: o.title,
-			description: o.description,
-			timeOfDay: o.time_of_day,
-			categoryId: o.category_id,
-			isCancelled: o.is_cancelled,
-		}));
-		const completions: EngineCompletion[] = (completionsRes.data ?? []).map(
-			(c) => ({
-				taskId: c.task_id,
-				occurrenceDate: c.occurrence_date,
-				status: c.status as EngineCompletion['status'],
-			}),
-		);
-
-		return expandOccurrences({
-			tasks,
-			overrides,
-			completions,
-			from: data.date,
-			to: data.date,
-		});
-	});
+// Occurrences across a date range (used by the calendar).
+export const listRangeFn = createServerFn({ method: 'GET' })
+	.validator(rangeSchema)
+	.handler(
+		({ data }): Promise<Occurrence[]> => loadOccurrences(data.from, data.to),
+	);
 
 export type { CompletionStatus } from './recurrence';
 export type DayTask = Occurrence;

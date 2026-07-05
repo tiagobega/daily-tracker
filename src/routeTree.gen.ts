@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTodayRouteImport } from './routes/_app/today'
+import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -28,6 +29,11 @@ const AppTodayRoute = AppTodayRouteImport.update({
   path: '/today',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const authLoginRoute = authLoginRouteImport.update({
   id: '/(auth)/login',
   path: '/login',
@@ -37,11 +43,13 @@ const authLoginRoute = authLoginRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof authLoginRoute
+  '/calendar': typeof AppCalendarRoute
   '/today': typeof AppTodayRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof authLoginRoute
+  '/calendar': typeof AppCalendarRoute
   '/today': typeof AppTodayRoute
 }
 export interface FileRoutesById {
@@ -49,14 +57,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteRouteWithChildren
   '/(auth)/login': typeof authLoginRoute
+  '/_app/calendar': typeof AppCalendarRoute
   '/_app/today': typeof AppTodayRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/today'
+  fullPaths: '/' | '/login' | '/calendar' | '/today'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/today'
-  id: '__root__' | '/' | '/_app' | '/(auth)/login' | '/_app/today'
+  to: '/' | '/login' | '/calendar' | '/today'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/(auth)/login'
+    | '/_app/calendar'
+    | '/_app/today'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -88,6 +103,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTodayRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/(auth)/login': {
       id: '/(auth)/login'
       path: '/login'
@@ -99,10 +121,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteRouteChildren {
+  AppCalendarRoute: typeof AppCalendarRoute
   AppTodayRoute: typeof AppTodayRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppCalendarRoute: AppCalendarRoute,
   AppTodayRoute: AppTodayRoute,
 }
 

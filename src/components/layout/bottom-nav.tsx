@@ -5,7 +5,7 @@ import { Calendar, CalendarCheck, Settings, Target } from 'lucide-react';
 // tabs are placeholders until their screens exist (Fases 6–8).
 const ITEMS = [
 	{ label: 'Hoje', icon: CalendarCheck, to: '/today' as const },
-	{ label: 'Calendário', icon: Calendar, to: null },
+	{ label: 'Calendário', icon: Calendar, to: '/calendar' as const },
 	{ label: 'Objetivos', icon: Target, to: null },
 	{ label: 'Ajustes', icon: Settings, to: null },
 ];

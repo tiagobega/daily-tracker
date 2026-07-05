@@ -30,12 +30,16 @@ import {
 import { signOutFn } from '#/lib/supabase/auth';
 
 export const Route = createFileRoute('/_app/today')({
+	validateSearch: (search: Record<string, unknown>): { date?: string } => ({
+		date: typeof search.date === 'string' ? search.date : undefined,
+	}),
 	component: TodayPage,
 });
 
 function TodayPage() {
 	const router = useRouter();
-	const [date, setDate] = useState(() => todayISO());
+	const { date: dateParam } = Route.useSearch();
+	const [date, setDate] = useState(() => dateParam ?? todayISO());
 	const [title, setTitle] = useState('');
 	const [creating, setCreating] = useState(false);
 	const isToday = date === todayISO();
