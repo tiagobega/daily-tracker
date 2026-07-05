@@ -1,5 +1,5 @@
-import { createServerClient } from "@supabase/ssr"
-import { getCookies, setCookie } from "@tanstack/react-start/server"
+import { createServerClient } from "@supabase/ssr";
+import { getCookies, setCookie } from "@tanstack/react-start/server";
 
 // Server-side Supabase client bound to the current request's cookies.
 // Because it carries the user's JWT, every query it runs respects RLS.
@@ -11,16 +11,17 @@ export function getSupabaseServerClient() {
 		{
 			cookies: {
 				getAll() {
-					return Object.entries(getCookies() ?? {}).map(
-						([name, value]) => ({ name, value }),
-					)
+					return Object.entries(getCookies() ?? {}).map(([name, value]) => ({
+						name,
+						value,
+					}));
 				},
 				setAll(cookiesToSet) {
 					for (const { name, value, options } of cookiesToSet) {
-						setCookie(name, value, options)
+						setCookie(name, value, options);
 					}
 				},
 			},
 		},
-	)
+	);
 }

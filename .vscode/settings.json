@@ -38,5 +38,7 @@
   "[mdx]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "biome.lspBin": ["./node_modules/@biomejs/biome/bin/biome"]
+  "biome.lspBin": ["./node_modules/@biomejs/biome/bin/biome"],
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true
 }

@@ -1,14 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { fetchUserFn } from "#/lib/supabase/auth";
 
-export const Route = createFileRoute('/')({ component: Home })
-
-function Home() {
-  return (
-    <div className="p-8">
-      <h1 className="text-4xl font-bold">Welcome to TanStack Start</h1>
-      <p className="mt-4 text-lg">
-        Edit <code>src/routes/index.tsx</code> to get started.
-      </p>
-    </div>
-  )
-}
+// Landing: bounce to the app when logged in, otherwise to login.
+export const Route = createFileRoute("/")({
+	beforeLoad: async () => {
+		const user = await fetchUserFn();
+		throw redirect({ to: user ? "/today" : "/login" });
+	},
+});
